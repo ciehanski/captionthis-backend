@@ -1,9 +1,10 @@
 package main
 
 import (
-	"captionthis/pkg"
 	"log"
 	"os"
+
+	"github.com/ciehanski/captionthis-backend/pkg"
 )
 
 func main() {
