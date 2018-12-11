@@ -21,7 +21,11 @@ func main() {
 		log.Fatal(err)
 	}
 	// Gracefully close connection to database
-	defer api.CloseDB()
+	defer func() {
+		if err := api.CloseDB(); err != nil {
+			log.Fatal(err)
+		}
+	}()
 
 	if err = api.Run(os.Getenv("addr")); err != nil {
 		log.Fatal(err)
