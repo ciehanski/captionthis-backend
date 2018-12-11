@@ -103,9 +103,9 @@ func (a *api) createUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Generate argon2 hash of the supplied password to store
-	hashedPassword, err := hashPassword(user.Password)
-	if err != nil {
-		a.logf("Unable to generate random salt for %s's password: %s", user.Username, err.Error())
+	hashedPassword, hashErr := hashPassword(user.Password)
+	if hashErr != nil {
+		a.logf("Unable to generate random salt for %s's password: %s", user.Username, hashErr.Error())
 		respond(w, jsonResponse(http.StatusInternalServerError, "Unable to create user"))
 		return
 	}
@@ -130,7 +130,7 @@ func (a *api) createUser(w http.ResponseWriter, r *http.Request) {
 	resp["user"] = user
 
 	// Create JWT
-	err = a.createJWT(w, &user)
+	err := a.createJWT(w, &user)
 	if err != nil {
 		respond(w, jsonResponse(http.StatusInternalServerError, "Error creating authentication token"))
 		return
