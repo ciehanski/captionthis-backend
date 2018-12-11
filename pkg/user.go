@@ -5,16 +5,16 @@ import (
 	"crypto/subtle"
 	"encoding/hex"
 	"fmt"
-	"golang.org/x/crypto/argon2"
 	"net/http"
 	"regexp"
 	"strings"
 	"time"
 
-	"github.com/dgrijalva/jwt-go"
+	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/gofrs/uuid"
 	"github.com/gorilla/mux"
 	"github.com/jinzhu/gorm"
+	"golang.org/x/crypto/argon2"
 )
 
 func (a *api) getAllUsers(w http.ResponseWriter, r *http.Request) {
