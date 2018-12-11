@@ -5,8 +5,9 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/ciehanski/go-jwt-middleware"
-	"github.com/dgrijalva/jwt-go"
+	jwt "github.com/dgrijalva/jwt-go"
+
+	jwtmiddleware "github.com/ciehanski/go-jwt-middleware"
 )
 
 // jwtSigningKey is a global secret string for our token gathered from env
