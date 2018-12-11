@@ -53,11 +53,8 @@ func (a *api) Run(addr string) error {
 
 	// Start HTTP Server
 	fmt.Println(fmt.Sprintf("captionthis API listening at: %s/%s", addr, a.Options.Version))
-	if err := srv.ListenAndServe(); err != nil {
-		return err
-	}
 
-	return nil
+	return srv.ListenAndServe()
 }
 
 // logf prints application errors if debug is enabled
