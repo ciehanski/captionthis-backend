@@ -111,7 +111,7 @@ func (a *api) createUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Store hashed password in database, never save the raw password
-	user.Password = string(hashedPassword)
+	user.Password = hashedPassword
 	// Force lowercase email in database
 	user.Email = strings.ToLower(user.Email)
 
