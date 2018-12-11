@@ -5,15 +5,16 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/ciehanski/go-jwt-middleware"
-	"github.com/dgrijalva/jwt-go"
+	jwt "github.com/dgrijalva/jwt-go"
+
+	jwtmiddleware "github.com/ciehanski/go-jwt-middleware"
 )
 
 // jwtSigningKey is a global secret string for our token gathered from env
-var jwtSigningKey = []byte(os.Getenv("jwt_secret"))
+var jwtSigningKey = []byte(os.Getenv(JWTSecret))
 
 // refreshSigningKey is a global secret string for our token gathered from env
-var refreshSigningKey = []byte(os.Getenv("refresh_secret"))
+var refreshSigningKey = []byte(os.Getenv(RefreshSecret))
 
 // jwtMiddleware is a middleware handler for protected endpoints
 var jwtMiddleware = jwtmiddleware.New(jwtmiddleware.Options{
@@ -21,7 +22,7 @@ var jwtMiddleware = jwtmiddleware.New(jwtmiddleware.Options{
 		return jwtSigningKey, nil
 	},
 	CredentialsOptional: false,
-	Extractor:           jwtmiddleware.FromCookie("authToken"),
+	Extractor:           jwtmiddleware.FromCookie(AuthToken),
 	Debug:               true,
 	IgnoreExpiration:    false,
 	SigningMethod:       jwt.SigningMethodHS256,
@@ -36,7 +37,7 @@ var refreshTokenMiddleware = jwtmiddleware.New(jwtmiddleware.Options{
 		return refreshSigningKey, nil
 	},
 	CredentialsOptional: false,
-	Extractor:           jwtmiddleware.FromCookie("refreshToken"),
+	Extractor:           jwtmiddleware.FromCookie(RefreshToken),
 	Debug:               true,
 	IgnoreExpiration:    false,
 	SigningMethod:       jwt.SigningMethodHS256,

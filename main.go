@@ -1,9 +1,10 @@
 package main
 
 import (
-	"captionthis/pkg"
 	"log"
 	"os"
+
+	"github.com/ciehanski/captionthis-backend/pkg"
 )
 
 func main() {
@@ -19,9 +20,14 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	// Gracefully close connection to database
+	defer func() {
+		if err := api.CloseDB(); err != nil {
+			log.Fatal(err)
+		}
+	}()
+
 	if err = api.Run(os.Getenv("addr")); err != nil {
 		log.Fatal(err)
 	}
-	// Gracefully close connection to database
-	defer api.CloseDB()
 }

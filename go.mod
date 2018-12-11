@@ -1,4 +1,4 @@
-module captionthis
+module github.com/ciehanski/captionthis-backend
 
 require (
 	cloud.google.com/go v0.33.1 // indirect
@@ -11,7 +11,7 @@ require (
 	github.com/gofrs/uuid v3.1.0+incompatible
 	github.com/google/go-cmp v0.2.0 // indirect
 	github.com/gopherjs/gopherjs v0.0.0-20181103185306-d547d1d9531e // indirect
-	github.com/gorilla/csrf v1.5.1
+	github.com/gorilla/context v1.1.1 // indirect
 	github.com/gorilla/handlers v1.4.0
 	github.com/gorilla/mux v1.6.2
 	github.com/jinzhu/gorm v1.9.2
