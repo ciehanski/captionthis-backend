@@ -88,9 +88,10 @@ func (a *api) initDB() error {
 	// Auto migrate database based on the model structs below
 	if a.Options.Debug {
 		a.Options.DB.Debug().AutoMigrate(User{}, Image{}, Caption{}, Vote{})
-	} else {
-		a.Options.DB.AutoMigrate(User{}, Image{}, Caption{}, Vote{})
+		return nil
 	}
+
+	a.Options.DB.AutoMigrate(User{}, Image{}, Caption{}, Vote{})
 
 	return nil
 }
