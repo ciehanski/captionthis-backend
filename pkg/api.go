@@ -26,18 +26,18 @@ func New(options ...Options) (*api, error) {
 		return nil, errors.New("database information must not be nil")
 	}
 
-	api := &api{
-		Options: opts,
-	}
-	if err := api.initDB(); err != nil {
-		return nil, err
-	}
-	api.initRouter()
-	if err := api.initCaching(); err != nil {
+	newAPI := api{Options: opts}
+
+	if err := newAPI.initDB(); err != nil {
 		return nil, err
 	}
 
-	return api, nil
+	newAPI.initRouter()
+	if err := newAPI.initCaching(); err != nil {
+		return nil, err
+	}
+
+	return &newAPI, nil
 }
 
 func (a *api) Run(addr string) error {
