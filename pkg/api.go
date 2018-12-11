@@ -15,9 +15,7 @@ import (
 
 func New(options ...Options) (*api, error) {
 	var opts Options
-	if len(options) == 0 {
-		opts = Options{}
-	} else {
+	if len(options) > 0 {
 		opts = options[0]
 	}
 
