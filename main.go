@@ -20,9 +20,10 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	// Gracefully close connection to database
+	defer api.CloseDB()
+
 	if err = api.Run(os.Getenv("addr")); err != nil {
 		log.Fatal(err)
 	}
-	// Gracefully close connection to database
-	defer api.CloseDB()
 }
