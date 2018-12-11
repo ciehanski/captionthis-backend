@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/json-iterator/go"
+	jsoniter "github.com/json-iterator/go"
 )
 
 // Faster JSON parsing
