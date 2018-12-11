@@ -96,11 +96,13 @@ func (a *api) initDB() error {
 	return nil
 }
 
-func (a *api) CloseDB() {
-	err := a.Options.DB.Close()
-	if err != nil {
-		log.Fatalf("Error closing connection to database: %s", err.Error())
+func (a *api) CloseDB() error {
+	if a.Options.DB != nil {
+		if err := a.Options.DB.Close(); err != nil {
+			return fmt.Errorf("error closing connection to database: %s", err.Error())
+		}
 	}
+	return nil
 }
 
 func (a *api) initCaching() error {
