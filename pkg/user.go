@@ -283,7 +283,7 @@ func (a *api) login(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *api) logout(w http.ResponseWriter, r *http.Request) {
-	authCookie, err := r.Cookie("authToken")
+	authCookie, err := r.Cookie(AuthToken)
 	if err != nil {
 		a.logf("Unable to get authToken cookie: %s", err.Error())
 		respond(w, jsonResponse(http.StatusInternalServerError, "Error logging user out"))
@@ -295,7 +295,7 @@ func (a *api) logout(w http.ResponseWriter, r *http.Request) {
 	authCookie.Expires = time.Now().Add(-7 * 24 * time.Hour)
 	http.SetCookie(w, authCookie)
 
-	refreshCookie, err := r.Cookie("refreshToken")
+	refreshCookie, err := r.Cookie(RefreshToken)
 	if err != nil {
 		a.logf("Unable to get authToken cookie: %s", err.Error())
 		respond(w, jsonResponse(http.StatusInternalServerError, "Error logging user out"))
@@ -332,7 +332,7 @@ func (a *api) refreshAuthToken(w http.ResponseWriter, r *http.Request) {
 	userID := params["userId"]
 
 	// Grab refresh cookie and parse it
-	refreshCookie, err := r.Cookie("refreshToken")
+	refreshCookie, err := r.Cookie(RefreshToken)
 	if err != nil {
 		a.logf("Unable to get authToken cookie: %s", err.Error())
 		respond(w, jsonResponse(http.StatusInternalServerError, "Error re-authenticating"))
@@ -382,8 +382,8 @@ func (a *api) refreshAuthToken(w http.ResponseWriter, r *http.Request) {
 	// Set token claims
 	claims := token.Claims.(jwt.MapClaims)
 	claims["jti"] = jti
-	claims["iss"] = "captionthis-backend"
-	claims["aud"] = "captionthis-frontend"
+	claims["iss"] = captionThisBackend
+	claims["aud"] = captionThisFrontend
 	claims["sub"] = userID
 	claims["nbf"] = time.Now().Unix()
 	claims["iat"] = time.Now().Unix()
@@ -397,7 +397,7 @@ func (a *api) refreshAuthToken(w http.ResponseWriter, r *http.Request) {
 
 	// JWT token in cookie
 	authCookie := &http.Cookie{
-		Name: "authToken",
+		Name: AuthToken,
 		//Domain:   "captionthis.io",
 		SameSite: http.SameSiteStrictMode,
 		Value:    signedToken,
@@ -426,8 +426,8 @@ func (a *api) createJWT(w http.ResponseWriter, user *User) error {
 	// Set token claims
 	claims := token.Claims.(jwt.MapClaims)
 	claims["jti"] = jti
-	claims["iss"] = "captionthis-backend"
-	claims["aud"] = "captionthis-frontend"
+	claims["iss"] = captionThisBackend
+	claims["aud"] = captionThisFrontend
 	claims["sub"] = user.ID
 	claims["nbf"] = time.Now().Unix()
 	claims["iat"] = time.Now().Unix()
@@ -448,8 +448,8 @@ func (a *api) createJWT(w http.ResponseWriter, user *User) error {
 	// Set token claims
 	refreshClaims := refreshToken.Claims.(jwt.MapClaims)
 	refreshClaims["jti"] = refreshJti
-	refreshClaims["iss"] = "captionthis-backend"
-	refreshClaims["aud"] = "captionthis-frontend"
+	refreshClaims["iss"] = captionThisBackend
+	refreshClaims["aud"] = captionThisFrontend
 	refreshClaims["sub"] = user.ID
 	refreshClaims["nbf"] = time.Now().Unix()
 	refreshClaims["iat"] = time.Now().Unix()
@@ -470,8 +470,8 @@ func (a *api) createJWT(w http.ResponseWriter, user *User) error {
 	// Set token claims
 	userClaims := userToken.Claims.(jwt.MapClaims)
 	userClaims["jti"] = userJti
-	userClaims["iss"] = "captionthis-backend"
-	userClaims["aud"] = "captionthis-frontend"
+	userClaims["iss"] = captionThisBackend
+	userClaims["aud"] = captionThisFrontend
 	userClaims["sub"] = user.ID
 	userClaims["username"] = user.Username
 	userClaims["email"] = user.Email
@@ -487,7 +487,7 @@ func (a *api) createJWT(w http.ResponseWriter, user *User) error {
 
 	// JWT token in cookie
 	authCookie := &http.Cookie{
-		Name: "authToken",
+		Name: AuthToken,
 		//Domain:   "captionthis.io",
 		SameSite: http.SameSiteStrictMode,
 		Value:    signedToken,
@@ -501,7 +501,7 @@ func (a *api) createJWT(w http.ResponseWriter, user *User) error {
 
 	// Refresh token cookie
 	refreshCookie := &http.Cookie{
-		Name: "refreshToken",
+		Name: RefreshToken,
 		//Domain:   "captionthis.io",
 		SameSite: http.SameSiteStrictMode,
 		Value:    signedRefreshToken,
