@@ -528,13 +528,13 @@ func (a *API) createJWT(w http.ResponseWriter, user *User) error {
 
 	// Create refresh token
 	userToken := jwt.New(jwt.SigningMethodHS256)
-	userJti, err := uuid.NewV4()
+	userJTI, err := uuid.NewV4()
 	if err != nil {
 		return err
 	}
 	// Set token claims
 	userClaims := userToken.Claims.(jwt.MapClaims)
-	userClaims["jti"] = userJti
+	userClaims["jti"] = userJTI
 	userClaims["iss"] = captionthisBackend
 	userClaims["aud"] = captionthisFrontend
 	userClaims["sub"] = user.ID
