@@ -4,11 +4,11 @@ import (
 	"log"
 	"os"
 
-	"github.com/ciehanski/captionthis-backend/pkg"
+	"github.com/ciehanski/captionthis-backend/api"
 )
 
 func main() {
-	api, err := pkg.New(pkg.Options{
+	a, err := api.New(api.Options{
 		Version: "v1beta",
 		DBhost:  os.Getenv("dbhost"),
 		DBname:  os.Getenv("dbname"),
@@ -22,12 +22,12 @@ func main() {
 	}
 	// Gracefully close connection to database
 	defer func() {
-		if err := api.CloseDB(); err != nil {
+		if err := a.CloseDB(); err != nil {
 			log.Fatal(err)
 		}
 	}()
 
-	if err = api.Run(os.Getenv("addr")); err != nil {
+	if err = a.Run(os.Getenv("addr")); err != nil {
 		log.Fatal(err)
 	}
 }

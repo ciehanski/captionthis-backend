@@ -1,9 +1,10 @@
-package pkg
+package api
 
 import (
 	"crypto/rand"
 	"crypto/subtle"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"net/http"
 	"regexp"
@@ -17,7 +18,7 @@ import (
 	"golang.org/x/crypto/argon2"
 )
 
-func (a *api) getAllUsers(w http.ResponseWriter, r *http.Request) {
+func (a *API) getAllUsers(w http.ResponseWriter, r *http.Request) {
 	var users []User
 
 	if err := a.Options.DB.Find(&users).Error; err != nil {
@@ -26,11 +27,12 @@ func (a *api) getAllUsers(w http.ResponseWriter, r *http.Request) {
 			respond(w, jsonResponse(http.StatusNotFound, "Unable to retrieve all users"))
 			return
 		}
-		a.logf("Database error: %s", err.Error())
+		a.logf("Database error while getting all users: %s", err.Error())
 		respond(w, jsonResponse(http.StatusInternalServerError, "Database error"))
 		return
 	}
 
+	// TODO: secure?
 	// Sanitize users' passwords
 	for i := range users {
 		users[i].Password = ""
@@ -40,7 +42,7 @@ func (a *api) getAllUsers(w http.ResponseWriter, r *http.Request) {
 	respond(w, users)
 }
 
-func (a *api) getUserFromUsername(w http.ResponseWriter, r *http.Request) {
+func (a *API) getUserFromUsername(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
 	username := params["username"]
 	var user User
@@ -51,7 +53,7 @@ func (a *api) getUserFromUsername(w http.ResponseWriter, r *http.Request) {
 			respond(w, jsonResponse(http.StatusNotFound, "User not found"))
 			return
 		}
-		a.logf("Database error: %s", err.Error())
+		a.logf("Database error while getting %s: %s", user.Username, err.Error())
 		respond(w, jsonResponse(http.StatusInternalServerError, "Database error"))
 		return
 	}
@@ -63,7 +65,7 @@ func (a *api) getUserFromUsername(w http.ResponseWriter, r *http.Request) {
 	respond(w, user)
 }
 
-func (a *api) getUserFromID(w http.ResponseWriter, r *http.Request) {
+func (a *API) getUserFromID(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
 	id := params["userId"]
 	var user User
@@ -74,7 +76,7 @@ func (a *api) getUserFromID(w http.ResponseWriter, r *http.Request) {
 			respond(w, jsonResponse(http.StatusNotFound, "User not found"))
 			return
 		}
-		a.logf("Database error: %s", err.Error())
+		a.logf("Database error while getting %s: %s", user.Username, err.Error())
 		respond(w, jsonResponse(http.StatusInternalServerError, "Database error"))
 		return
 	}
@@ -86,7 +88,7 @@ func (a *api) getUserFromID(w http.ResponseWriter, r *http.Request) {
 	respond(w, user)
 }
 
-func (a *api) createUser(w http.ResponseWriter, r *http.Request) {
+func (a *API) createUser(w http.ResponseWriter, r *http.Request) {
 	var user User
 
 	if err := json.NewDecoder(r.Body).Decode(&user); err != nil {
@@ -96,9 +98,9 @@ func (a *api) createUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Validate the user
-	if err, ok := a.validateUser(user); !ok {
-		a.logf("Unable to validate user %s: %s", user.Username, err["message"].(string))
-		respond(w, jsonResponse(http.StatusConflict, err["message"].(string)))
+	if err := a.validateUser(user); err != nil {
+		a.logf("Unable to validate user %s: %s", user.Username, err.Error())
+		respond(w, jsonResponse(http.StatusConflict, err.Error()))
 		return
 	}
 
@@ -125,13 +127,9 @@ func (a *api) createUser(w http.ResponseWriter, r *http.Request) {
 	// Sanitize user's password with dummy password
 	user.Password = ""
 
-	// Send back response
-	resp := jsonResponse(http.StatusCreated, fmt.Sprintf("User %s created", user.Username))
-	resp["user"] = user
-
 	// Create JWT
-	err := a.createJWT(w, &user)
-	if err != nil {
+	if err := a.createJWT(w, &user); err != nil {
+		a.logf("Error creating JWTs for %s: %s", user.Username, err.Error())
 		respond(w, jsonResponse(http.StatusInternalServerError, "Error creating authentication token"))
 		return
 	}
@@ -139,28 +137,57 @@ func (a *api) createUser(w http.ResponseWriter, r *http.Request) {
 	// Allow cookies to be saved to the browser
 	w.Header().Add("Access-Control-Allow-Credentials", "true")
 
+	// Send back response
+	resp := jsonResponse(http.StatusCreated, fmt.Sprintf("User %s created", user.Username))
+	resp["user"] = user
+
 	a.logf("User %s created", user.Username)
 	respond(w, resp)
 }
 
-func (a *api) updateUser(w http.ResponseWriter, r *http.Request) {
+func (a *API) updateUser(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
 	username := params["username"]
-	var user User
 
-	if err := json.NewDecoder(r.Body).Decode(&user); err != nil {
+	var user User
+	if err := a.Options.DB.Table("users").Where("username = ?", username).First(&user).Error; err != nil {
+		if gorm.IsRecordNotFoundError(err) {
+			a.logf("User %s not found", user.Username)
+			respond(w, jsonResponse(http.StatusNotFound, "User not found"))
+			return
+		}
+		a.logf("Database error while getting %s: %s", user.Username, err.Error())
+		respond(w, jsonResponse(http.StatusInternalServerError, "Database error"))
+		return
+	}
+
+	// Sanitize user's password
+	user.Password = ""
+
+	// Decode user updates from POST
+	var userUpdates User
+	if err := json.NewDecoder(r.Body).Decode(&userUpdates); err != nil {
 		a.logf("Bad request: %s", err.Error())
 		respond(w, jsonResponse(http.StatusBadRequest, "Bad request"))
 		return
 	}
 
-	// Validate the user
-	if userReq, ok := a.validateUser(user); !ok {
-		respond(w, userReq)
+	// Validate the user updates
+	if err := a.validateUser(userUpdates); err != nil {
+		a.logf("Unable to validate user %s: %s", user.Username, err.Error())
+		respond(w, jsonResponse(http.StatusConflict, err.Error()))
 		return
 	}
 
-	if err := a.Options.DB.Save(&user).Error; err != nil {
+	// Validate if the updater is actually the user being updated
+	if err := validateIdentity(r, user); err != nil {
+		a.logf("Unable to validate permissions to modify user %s: %s", user.Username, err.Error())
+		respond(w, jsonResponse(http.StatusForbidden, "Invalid permissions to update user"))
+		return
+	}
+
+	// Only update the fields that were modified
+	if err := a.Options.DB.Model(&user).Updates(userUpdates).Error; err != nil {
 		a.logf("Unable to update user %s: %s", user.Username, err.Error())
 		respond(w, jsonResponse(http.StatusInternalServerError, "Unable to update user"))
 		return
@@ -170,18 +197,26 @@ func (a *api) updateUser(w http.ResponseWriter, r *http.Request) {
 	respond(w, jsonResponse(http.StatusOK, fmt.Sprintf("User %s successfully updated", username)))
 }
 
-func (a *api) deleteUser(w http.ResponseWriter, r *http.Request) {
+func (a *API) deleteUser(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
 	username := params["username"]
 	var user User
 
+	// Validate if the updater is actually the user being updated
+	if err := validateIdentity(r, user); err != nil {
+		a.logf("Unable to validate permissions to modify user %s: %s", user.Username, err.Error())
+		respond(w, jsonResponse(http.StatusForbidden, "Invalid permissions to update user"))
+		return
+	}
+
+	// Delete the user
 	if err := a.Options.DB.Table("users").Where("username = ?", username).Delete(&user).Error; err != nil {
 		if gorm.IsRecordNotFoundError(err) {
 			a.logf("User %s not found", user.Username)
 			respond(w, jsonResponse(http.StatusNotFound, "User not found"))
 			return
 		}
-		a.logf("Database error: %s", err.Error())
+		a.logf("Database error while deleting %s: %s", user.Username, err.Error())
 		respond(w, jsonResponse(http.StatusInternalServerError, "Database error"))
 		return
 	}
@@ -190,12 +225,12 @@ func (a *api) deleteUser(w http.ResponseWriter, r *http.Request) {
 	respond(w, jsonResponse(http.StatusOK, fmt.Sprintf("User %s successfully deleted", username)))
 }
 
-func (a *api) validateUser(user User) (map[string]interface{}, bool) {
-	if err := a.Options.DB.Table("users").Where("username = ?", user.Username).Error; err != nil {
-		return jsonResponse(http.StatusConflict, "Username already in use"), false
+func (a *API) validateUser(user User) error {
+	if err := a.Options.DB.Table("users").Where("username = ?", user.Username).First(&user).Error; err == nil {
+		return errors.New("Username already in use")
 	}
-	if err := a.Options.DB.Table("users").Where("email = ?", user.Email).Error; err != nil {
-		return jsonResponse(http.StatusConflict, "Email already in use"), false
+	if err := a.Options.DB.Table("users").Where("email = ?", user.Email).First(&user).Error; err == nil {
+		return errors.New("Email already in use")
 	}
 	validateCap := regexp.MustCompile(`[A-Z]+`)
 	validateNum := regexp.MustCompile(`[0-9]+`)
@@ -204,31 +239,65 @@ func (a *api) validateUser(user User) (map[string]interface{}, bool) {
 	validateSymbols := regexp.MustCompile(`[^\w\s]+`)
 	switch {
 	case validateSymbols.MatchString(user.Username):
-		return jsonResponse(http.StatusConflict, "Username cannot contain symbols"), false
-	case !strings.Contains(user.Email, "@") || !strings.Contains(user.Email, "."):
-		return jsonResponse(http.StatusConflict, "Invalid email address"), false
+		return errors.New("Username cannot contain symbols")
 	case !validateEmail.MatchString(user.Email):
-		return jsonResponse(http.StatusConflict, "Invalid email address"), false
+		return errors.New("Invalid email address")
 	case len(user.Password) < 8:
-		return jsonResponse(http.StatusConflict, "Password must contain at least 8 characters"), false
+		return errors.New("Password must contain at least 8 characters")
 	case len(user.Password) > 100:
-		return jsonResponse(http.StatusConflict, "Password cannot exceed 100 characters"), false
+		return errors.New("Password cannot exceed 100 characters")
 	case len(user.Username) < 3:
-		return jsonResponse(http.StatusConflict, "Username must contain at least 3 characters"), false
+		return errors.New("Username must contain at least 3 characters")
 	case len(user.Username) > 20:
-		return jsonResponse(http.StatusConflict, "Username cannot exceed 20 characters"), false
+		return errors.New("Username cannot exceed 20 characters")
 	case !validateSymbols.MatchString(user.Password):
-		return jsonResponse(http.StatusConflict, "Password must contain at least one symbol"), false
+		return errors.New("Password must contain at least one symbol")
 	case !validateNum.MatchString(user.Password):
-		return jsonResponse(http.StatusConflict, "Password must contain at least one number"), false
+		return errors.New("Password must contain at least one number")
 	case !validateCap.MatchString(user.Password):
-		return jsonResponse(http.StatusConflict, "Password must contain at least one capital character"), false
+		return errors.New("Password must contain at least one capital character")
 	default:
-		return jsonResponse(http.StatusOK, "Validation successful"), true
+		return nil
 	}
 }
 
-func (a *api) login(w http.ResponseWriter, r *http.Request) {
+func validateIdentity(r *http.Request, user User) error {
+	// Grab user cookie and parse it
+	userCookie, err := r.Cookie(UserToken)
+	if err != nil {
+		return err
+	}
+	userTok, err := jwt.Parse(userCookie.Value,
+		func(*jwt.Token) (interface{}, error) {
+			return jwtSigningKey, nil
+		})
+	if err != nil {
+		return err
+	}
+	if userTok.Claims.(jwt.MapClaims)["sub"] != user.ID {
+		return errors.New("user token does not match user ID provided")
+	}
+
+	// Grab refresh cookie and parse it
+	refreshCookie, err := r.Cookie(RefreshToken)
+	if err != nil {
+		return err
+	}
+	refreshTok, err := jwt.Parse(refreshCookie.Value,
+		func(*jwt.Token) (interface{}, error) {
+			return refreshSigningKey, nil
+		})
+	if err != nil {
+		return err
+	}
+	if refreshTok.Claims.(jwt.MapClaims)["sub"] != user.ID {
+		return errors.New("refresh token does not match user ID provided")
+	}
+
+	return nil
+}
+
+func (a *API) login(w http.ResponseWriter, r *http.Request) {
 	// Decode POST
 	var userReq User
 	if err := json.NewDecoder(r.Body).Decode(&userReq); err != nil {
@@ -245,7 +314,7 @@ func (a *api) login(w http.ResponseWriter, r *http.Request) {
 			respond(w, jsonResponse(http.StatusNotFound, "User not found"))
 			return
 		}
-		a.logf("Database error: %s", err.Error())
+		a.logf("Database error while authenticating %s: %s", user.Username, err.Error())
 		respond(w, jsonResponse(http.StatusInternalServerError, "Database error"))
 		return
 	}
@@ -264,13 +333,9 @@ func (a *api) login(w http.ResponseWriter, r *http.Request) {
 	// Sanitize user's password
 	user.Password = ""
 
-	// Send back user info in response
-	resp := jsonResponse(http.StatusOK, fmt.Sprintf("User %s authenticated", user.Username))
-	resp["user"] = user
-
 	// Create JWT
-	err := a.createJWT(w, &user)
-	if err != nil {
+	if err := a.createJWT(w, &user); err != nil {
+		a.logf("Error creating JWTs for %s: %s", user.Username, err.Error())
 		respond(w, jsonResponse(http.StatusInternalServerError, "Error creating authentication token"))
 		return
 	}
@@ -278,14 +343,18 @@ func (a *api) login(w http.ResponseWriter, r *http.Request) {
 	// Allow cookies to be saved to the browser
 	w.Header().Add("Access-Control-Allow-Credentials", "true")
 
+	// Send back user info in response
+	resp := jsonResponse(http.StatusOK, fmt.Sprintf("User %s authenticated", user.Username))
+	resp["user"] = user
+
 	a.logf("User %s has been logged in", user.Username)
 	respond(w, resp)
 }
 
-func (a *api) logout(w http.ResponseWriter, r *http.Request) {
+func (a *API) logout(w http.ResponseWriter, r *http.Request) {
 	authCookie, err := r.Cookie(AuthToken)
 	if err != nil {
-		a.logf("Unable to get authToken cookie: %s", err.Error())
+		a.logf("Unable to get auth cookie: %s", err.Error())
 		respond(w, jsonResponse(http.StatusInternalServerError, "Error logging user out"))
 		return
 	}
@@ -297,7 +366,7 @@ func (a *api) logout(w http.ResponseWriter, r *http.Request) {
 
 	refreshCookie, err := r.Cookie(RefreshToken)
 	if err != nil {
-		a.logf("Unable to get authToken cookie: %s", err.Error())
+		a.logf("Unable to get refresh cookie: %s", err.Error())
 		respond(w, jsonResponse(http.StatusInternalServerError, "Error logging user out"))
 		return
 	}
@@ -307,7 +376,7 @@ func (a *api) logout(w http.ResponseWriter, r *http.Request) {
 	refreshCookie.Expires = time.Now().Add(-7 * 24 * time.Hour)
 	http.SetCookie(w, refreshCookie)
 
-	userCookie, err := r.Cookie("user")
+	userCookie, err := r.Cookie(UserToken)
 	if err != nil {
 		a.logf("Unable to get user cookie: %s", err.Error())
 		respond(w, jsonResponse(http.StatusInternalServerError, "Error logging user out"))
@@ -326,7 +395,7 @@ func (a *api) logout(w http.ResponseWriter, r *http.Request) {
 	respond(w, jsonResponse(http.StatusOK, "User has been logged out"))
 }
 
-func (a *api) refreshAuthToken(w http.ResponseWriter, r *http.Request) {
+func (a *API) refreshAuthToken(w http.ResponseWriter, r *http.Request) {
 	// Grab URL params
 	params := mux.Vars(r)
 	userID := params["userId"]
@@ -354,7 +423,7 @@ func (a *api) refreshAuthToken(w http.ResponseWriter, r *http.Request) {
 		respond(w, jsonResponse(http.StatusUnauthorized, "Error re-authenticating"))
 		return
 	}
-	userCookie, err := r.Cookie("user")
+	userCookie, err := r.Cookie(UserToken)
 	if err != nil {
 		a.logf("Unable to get user cookie: %s", err.Error())
 		respond(w, jsonResponse(http.StatusInternalServerError, "Error re-authenticating"))
@@ -382,8 +451,8 @@ func (a *api) refreshAuthToken(w http.ResponseWriter, r *http.Request) {
 	// Set token claims
 	claims := token.Claims.(jwt.MapClaims)
 	claims["jti"] = jti
-	claims["iss"] = captionThisBackend
-	claims["aud"] = captionThisFrontend
+	claims["iss"] = captionthisBackend
+	claims["aud"] = captionthisFrontend
 	claims["sub"] = userID
 	claims["nbf"] = time.Now().Unix()
 	claims["iat"] = time.Now().Unix()
@@ -411,30 +480,29 @@ func (a *api) refreshAuthToken(w http.ResponseWriter, r *http.Request) {
 	// Allow cookies to be saved to the browser
 	w.Header().Add("Access-Control-Allow-Credentials", "true")
 
+	a.logf("Auth token refreshed for %v", userID)
 	respond(w, jsonResponse(http.StatusOK, "User token has been refreshed"))
 }
 
 // createToken creates a jwt token with user claims
-func (a *api) createJWT(w http.ResponseWriter, user *User) error {
+func (a *API) createJWT(w http.ResponseWriter, user *User) error {
 	// Create JWT
 	token := jwt.New(jwt.SigningMethodHS256)
 	jti, err := uuid.NewV4()
 	if err != nil {
-		a.logf("Unable to generate UUID for token: %s", err.Error())
 		return err
 	}
 	// Set token claims
 	claims := token.Claims.(jwt.MapClaims)
 	claims["jti"] = jti
-	claims["iss"] = captionThisBackend
-	claims["aud"] = captionThisFrontend
+	claims["iss"] = captionthisBackend
+	claims["aud"] = captionthisFrontend
 	claims["sub"] = user.ID
 	claims["nbf"] = time.Now().Unix()
 	claims["iat"] = time.Now().Unix()
 	claims["exp"] = time.Now().Add(time.Minute * 15).Unix()
 	signedToken, err := token.SignedString(jwtSigningKey)
 	if err != nil {
-		a.logf("Unable to sign token: %s", err.Error())
 		return err
 	}
 
@@ -442,21 +510,19 @@ func (a *api) createJWT(w http.ResponseWriter, user *User) error {
 	refreshToken := jwt.New(jwt.SigningMethodHS256)
 	refreshJti, err := uuid.NewV4()
 	if err != nil {
-		a.logf("Unable to generate UUID for token: %s", err.Error())
 		return err
 	}
 	// Set token claims
 	refreshClaims := refreshToken.Claims.(jwt.MapClaims)
 	refreshClaims["jti"] = refreshJti
-	refreshClaims["iss"] = captionThisBackend
-	refreshClaims["aud"] = captionThisFrontend
+	refreshClaims["iss"] = captionthisBackend
+	refreshClaims["aud"] = captionthisFrontend
 	refreshClaims["sub"] = user.ID
 	refreshClaims["nbf"] = time.Now().Unix()
 	refreshClaims["iat"] = time.Now().Unix()
 	refreshClaims["exp"] = time.Now().Add(time.Hour * 72).Unix()
 	signedRefreshToken, err := refreshToken.SignedString(refreshSigningKey)
 	if err != nil {
-		a.logf("Unable to sign token: %s", err.Error())
 		return err
 	}
 
@@ -464,14 +530,13 @@ func (a *api) createJWT(w http.ResponseWriter, user *User) error {
 	userToken := jwt.New(jwt.SigningMethodHS256)
 	userJti, err := uuid.NewV4()
 	if err != nil {
-		a.logf("Unable to generate UUID for token: %s", err.Error())
 		return err
 	}
 	// Set token claims
 	userClaims := userToken.Claims.(jwt.MapClaims)
 	userClaims["jti"] = userJti
-	userClaims["iss"] = captionThisBackend
-	userClaims["aud"] = captionThisFrontend
+	userClaims["iss"] = captionthisBackend
+	userClaims["aud"] = captionthisFrontend
 	userClaims["sub"] = user.ID
 	userClaims["username"] = user.Username
 	userClaims["email"] = user.Email
@@ -481,7 +546,6 @@ func (a *api) createJWT(w http.ResponseWriter, user *User) error {
 	userClaims["exp"] = time.Now().Unix()
 	signedUserToken, err := userToken.SignedString(jwtSigningKey)
 	if err != nil {
-		a.logf("Unable to sign token: %s", err.Error())
 		return err
 	}
 
@@ -513,7 +577,7 @@ func (a *api) createJWT(w http.ResponseWriter, user *User) error {
 
 	// User token cookie
 	userCookie := &http.Cookie{
-		Name: "user",
+		Name: UserToken,
 		//Domain:   "captionthis.io",
 		SameSite: http.SameSiteStrictMode,
 		Value:    signedUserToken,
@@ -523,7 +587,7 @@ func (a *api) createJWT(w http.ResponseWriter, user *User) error {
 	}
 	http.SetCookie(w, userCookie)
 
-	a.logf("Token %s has been created for %s", signedToken, user.Username)
+	a.logf("JWTs and cookies created for %s", user.Username)
 	return nil
 }
 

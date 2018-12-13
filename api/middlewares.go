@@ -1,13 +1,12 @@
-package pkg
+package api
 
 import (
-	"fmt"
 	"net/http"
 	"os"
 
-	jwt "github.com/dgrijalva/jwt-go"
+	"github.com/dgrijalva/jwt-go"
 
-	jwtmiddleware "github.com/ciehanski/go-jwt-middleware"
+	"github.com/ciehanski/go-jwt-middleware"
 )
 
 // jwtSigningKey is a global secret string for our token gathered from env
@@ -46,11 +45,11 @@ var refreshTokenMiddleware = jwtmiddleware.New(jwtmiddleware.Options{
 	},
 })
 
-// loggingMiddleware is the middleware used to log each request sent to the api for debug purposes.
-func (a *api) loggingMiddleware(next http.Handler) http.Handler {
+// loggingMiddleware is the middleware used to log each request sent to the API for debug purposes.
+func (a *API) loggingMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Log the request details
-		a.logf(fmt.Sprintf("%s %s %s %s", r.Proto, r.Method, r.RequestURI, getRemoteIP(r)))
+		a.logf("%s %s %s %s", r.Proto, r.Method, r.RequestURI, getRemoteIP(r))
 		// Call the next handler
 		next.ServeHTTP(w, r)
 	})

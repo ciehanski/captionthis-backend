@@ -1,4 +1,4 @@
-package pkg
+package api
 
 import (
 	"errors"
@@ -13,7 +13,20 @@ import (
 	"github.com/victorspringer/http-cache/adapter/memory"
 )
 
-func New(options ...Options) (*api, error) {
+const (
+	// JWT env variables
+	JWTSecret     = "jwt_secret"
+	RefreshSecret = "refresh_secret"
+	// Token cookie names
+	AuthToken    = "authToken"
+	RefreshToken = "refreshToken"
+	UserToken    = "user"
+	// JWT iss & aud
+	captionthisBackend  = "captionthis-backend"
+	captionthisFrontend = "captionthis-frontend"
+)
+
+func New(options ...Options) (*API, error) {
 	var opts Options
 	if len(options) > 0 {
 		opts = options[0]
@@ -26,7 +39,7 @@ func New(options ...Options) (*api, error) {
 		return nil, errors.New("database information must not be nil")
 	}
 
-	newAPI := api{Options: opts}
+	newAPI := API{Options: opts}
 
 	if err := newAPI.initDB(); err != nil {
 		return nil, err
@@ -40,7 +53,7 @@ func New(options ...Options) (*api, error) {
 	return &newAPI, nil
 }
 
-func (a *api) Run(addr string) error {
+func (a *API) Run(addr string) error {
 	// Define http server
 	// Best practice to set timeouts to avoid Slowloris attacks.
 	srv := &http.Server{
@@ -58,13 +71,13 @@ func (a *api) Run(addr string) error {
 }
 
 // logf prints application errors if debug is enabled
-func (a *api) logf(format string, args ...interface{}) {
+func (a *API) logf(format string, args ...interface{}) {
 	if a.Options.Debug {
 		log.Printf(format, args...)
 	}
 }
 
-func (a *api) initDB() error {
+func (a *API) initDB() error {
 	// Database parameters
 	dbURI := fmt.Sprintf("host=%s user=%s dbname=%s password=%s sslmode=%s", a.Options.DBhost, a.Options.DBuser,
 		a.Options.DBname, a.Options.DBpass, a.Options.DBssl)
@@ -96,7 +109,7 @@ func (a *api) initDB() error {
 	return nil
 }
 
-func (a *api) CloseDB() error {
+func (a *API) CloseDB() error {
 	if a.Options.DB != nil {
 		if err := a.Options.DB.Close(); err != nil {
 			return fmt.Errorf("error closing connection to database: %s", err.Error())
@@ -105,7 +118,7 @@ func (a *api) CloseDB() error {
 	return nil
 }
 
-func (a *api) initCaching() error {
+func (a *API) initCaching() error {
 	// Create the in-memory cache store
 	memcached, err := memory.NewAdapter(
 		memory.AdapterWithAlgorithm(memory.LRU),
@@ -126,14 +139,4 @@ func (a *api) initCaching() error {
 
 	a.Options.Router.Use(cacheClient.Middleware)
 	return nil
-}
-
-// Handles 404s
-func notFoundHandler404(w http.ResponseWriter, r *http.Request) {
-	respond(w, jsonResponse(http.StatusNotFound, "Invalid endpoint"))
-}
-
-// Handles invalid HTTP methods
-func methodNotAllowed(w http.ResponseWriter, r *http.Request) {
-	respond(w, jsonResponse(http.StatusMethodNotAllowed, "Method not allowed"))
 }

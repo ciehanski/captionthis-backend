@@ -1,4 +1,4 @@
-package pkg
+package api
 
 import (
 	"fmt"
@@ -9,7 +9,7 @@ import (
 	"github.com/urfave/negroni"
 )
 
-func (a *api) initRouter() {
+func (a *API) initRouter() {
 	// Create router
 	a.Options.Router = mux.NewRouter().StrictSlash(true)
 	// Logging middleware
@@ -26,7 +26,7 @@ func (a *api) initRouter() {
 	a.initRoutes()
 }
 
-func (a *api) initRoutes() {
+func (a *API) initRoutes() {
 	// Public Endpoints
 	a.Options.Router.HandleFunc(fmt.Sprintf("/%s/u",
 		a.Options.Version), a.createUser).Methods("POST")
@@ -65,7 +65,7 @@ func (a *api) initRoutes() {
 
 	a.Options.Router.Handle(fmt.Sprintf("/%s/u/{userId:[0-9]+}/logout", a.Options.Version),
 		negroni.New(negroni.HandlerFunc(jwtMiddleware.HandlerWithNext),
-			negroni.Wrap(http.HandlerFunc(a.logout)))).Methods("GET")
+			negroni.Wrap(http.HandlerFunc(a.logout)))).Methods("POST")
 
 	a.Options.Router.Handle(fmt.Sprintf("/%s/u/{username:[a-zA-Z0-9]+}", a.Options.Version),
 		negroni.New(negroni.HandlerFunc(jwtMiddleware.HandlerWithNext),
@@ -113,4 +113,14 @@ func (a *api) initRoutes() {
 	a.Options.Router.Handle(fmt.Sprintf("/%s/votes/{voteId:[0-9]+}", a.Options.Version),
 		negroni.New(negroni.HandlerFunc(jwtMiddleware.HandlerWithNext),
 			negroni.Wrap(http.HandlerFunc(a.updateVote)))).Methods("PATCH")
+}
+
+// Handles 404s
+func notFoundHandler404(w http.ResponseWriter, r *http.Request) {
+	respond(w, jsonResponse(http.StatusNotFound, "Invalid endpoint"))
+}
+
+// Handles invalid HTTP methods
+func methodNotAllowed(w http.ResponseWriter, r *http.Request) {
+	respond(w, jsonResponse(http.StatusMethodNotAllowed, "Method not allowed"))
 }

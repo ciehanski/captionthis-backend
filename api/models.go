@@ -1,4 +1,4 @@
-package pkg
+package api
 
 import (
 	"time"
@@ -7,7 +7,7 @@ import (
 	"github.com/jinzhu/gorm"
 )
 
-type api struct {
+type API struct {
 	Options Options
 }
 
@@ -26,17 +26,19 @@ type Options struct {
 type Caption struct {
 	ID        uint      `gorm:"primary_key" json:"id"`
 	CreatedAt time.Time `json:"created_at"`
-	Image     uint      `gorm:"type:int;not null" json:"image"`
+	UpdatedAt time.Time `json:"updated_at"`
+	Image     uint      `gorm:"type:int;not null;unique_index:idx_captions_image" json:"image"`
 	Message   string    `gorm:"type:varchar(255);not null" json:"message"`
 	PostedBy  uint      `gorm:"type:int;not null" json:"posted_by"`
 	Votes     []Vote    `gorm:"foreignkey:Caption" json:"votes"`
 }
 
 type Image struct {
+	ID        uint      `gorm:"primary_key" json:"id"`
 	CreatedAt time.Time `json:"created_at"`
-	Slug      string    `gorm:"primary_key;type:varchar(255);not null;unique" json:"slug"`
+	Slug      string    `gorm:"type:varchar(255);not null;unique;unique_index:idx_images_slug" json:"slug"`
 	Source    string    `gorm:"type:varchar(255);not null" json:"source"`
-	PostedBy  uint      `gorm:"type:int;not null" json:"posted_by"`
+	PostedBy  uint      `gorm:"type:int;not null;unique_index:idx_images_postedby" json:"posted_by"`
 	Votes     []Vote    `gorm:"foreignkey:Image" json:"votes"`
 	Captions  []Caption `gorm:"foreignkey:Image" json:"captions"`
 }

@@ -1,7 +1,7 @@
 module github.com/ciehanski/captionthis-backend
 
 require (
-	cloud.google.com/go v0.33.1 // indirect
+	cloud.google.com/go v0.34.0 // indirect
 	github.com/ciehanski/go-jwt-middleware v0.0.1
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/denisenkom/go-mssqldb v0.0.0-20181014144952-4e0d7dc8888f // indirect
@@ -33,7 +33,11 @@ require (
 	github.com/tjarratt/babble v0.0.0-20140317234543-2cf06e8d98b0
 	github.com/urfave/negroni v1.0.0
 	github.com/victorspringer/http-cache v0.0.0-20180917030003-74620151b84f
-	golang.org/x/crypto v0.0.0-20181127143415-eb0de9b17e85
+	golang.org/x/crypto v0.0.0-20181203042331-505ab145d0a9
+	golang.org/x/net v0.0.0-20181207154023-610586996380 // indirect
+	golang.org/x/sync v0.0.0-20181108010431-42b317875d0f // indirect
+	golang.org/x/sys v0.0.0-20181211161752-7da8ea5c8182 // indirect
 	google.golang.org/appengine v1.3.0 // indirect
 	gopkg.in/check.v1 v1.0.0-20180628173108-788fd7840127 // indirect
+	gopkg.in/yaml.v2 v2.2.2 // indirect
 )

@@ -1,4 +1,4 @@
-package pkg
+package api
 
 import (
 	"fmt"
@@ -8,7 +8,7 @@ import (
 	"github.com/jinzhu/gorm"
 )
 
-func (a *api) getVote(w http.ResponseWriter, r *http.Request) {
+func (a *API) getVote(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
 	voteID := params["voteId"]
 	var vote Vote
@@ -26,7 +26,7 @@ func (a *api) getVote(w http.ResponseWriter, r *http.Request) {
 }
 
 // TODO add validation and increment Image's vote value
-func (a *api) createVote(w http.ResponseWriter, r *http.Request) {
+func (a *API) createVote(w http.ResponseWriter, r *http.Request) {
 	var vote Vote
 
 	if err := json.NewDecoder(r.Body).Decode(&vote); err != nil {
@@ -42,7 +42,7 @@ func (a *api) createVote(w http.ResponseWriter, r *http.Request) {
 	respond(w, vote)
 }
 
-func (a *api) updateVote(w http.ResponseWriter, r *http.Request) {
+func (a *API) updateVote(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
 	voteID := params["voteId"]
 	var vote Vote
@@ -69,7 +69,7 @@ func (a *api) updateVote(w http.ResponseWriter, r *http.Request) {
 	respond(w, jsonResponse(http.StatusOK, fmt.Sprintf("Vote %v successfully updated", voteID)))
 }
 
-func (a *api) deleteVote(w http.ResponseWriter, r *http.Request) {
+func (a *API) deleteVote(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
 	voteID := params["voteId"]
 	var vote Vote
