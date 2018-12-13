@@ -409,7 +409,7 @@ func (a *API) refreshAuthToken(w http.ResponseWriter, r *http.Request) {
 	}
 	refreshTok, err := jwt.Parse(refreshCookie.Value,
 		func(*jwt.Token) (interface{}, error) {
-			return jwtSigningKey, nil
+			return refreshSigningKey, nil
 		})
 	if err != nil {
 		a.logf("Error parsing refresh token %s: %s", refreshTok.Raw, err.Error())
