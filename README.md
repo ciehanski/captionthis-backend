@@ -9,7 +9,6 @@ This is the "RESTful" API backend for captionthis. Currently a massive WIP.
 - [x] Implement argon2 over bcrypt
 - [ ] Implement refresh tokens
 - [x] Implement caching
-- [ ] Implement CSRF
 - [ ] Implement searching, sorting and filtering
 - [ ] Implement proper versioning (subrouters, etc)
 - [x] Implement compression middleware

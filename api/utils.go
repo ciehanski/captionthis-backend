@@ -1,12 +1,11 @@
 package api
 
 import (
+	"github.com/json-iterator/go"
 	"log"
 	"net"
 	"net/http"
 	"strings"
-
-	jsoniter "github.com/json-iterator/go"
 )
 
 // Faster JSON parsing

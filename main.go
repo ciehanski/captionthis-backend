@@ -20,13 +20,13 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	// Gracefully close connection to database
+	// Gracefully defer close connection to database
 	defer func() {
 		if err := a.CloseDB(); err != nil {
 			log.Fatal(err)
 		}
 	}()
-
+	// Start the server
 	if err = a.Run(os.Getenv("addr")); err != nil {
 		log.Fatal(err)
 	}

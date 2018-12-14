@@ -148,8 +148,8 @@ func (a *API) createUser(w http.ResponseWriter, r *http.Request) {
 func (a *API) updateUser(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
 	username := params["username"]
-
 	var user User
+
 	if err := a.Options.DB.Table("users").Where("username = ?", username).First(&user).Error; err != nil {
 		if gorm.IsRecordNotFoundError(err) {
 			a.logf("User %s not found", user.Username)
@@ -227,10 +227,10 @@ func (a *API) deleteUser(w http.ResponseWriter, r *http.Request) {
 
 func (a *API) validateUser(user User) error {
 	if err := a.Options.DB.Table("users").Where("username = ?", user.Username).First(&user).Error; err == nil {
-		return errors.New("Username already in use")
+		return errors.New("username already in use")
 	}
 	if err := a.Options.DB.Table("users").Where("email = ?", user.Email).First(&user).Error; err == nil {
-		return errors.New("Email already in use")
+		return errors.New("email already in use")
 	}
 	validateCap := regexp.MustCompile(`[A-Z]+`)
 	validateNum := regexp.MustCompile(`[0-9]+`)
@@ -239,23 +239,23 @@ func (a *API) validateUser(user User) error {
 	validateSymbols := regexp.MustCompile(`[^\w\s]+`)
 	switch {
 	case validateSymbols.MatchString(user.Username):
-		return errors.New("Username cannot contain symbols")
+		return errors.New("username cannot contain symbols")
 	case !validateEmail.MatchString(user.Email):
-		return errors.New("Invalid email address")
+		return errors.New("invalid email address")
 	case len(user.Password) < 8:
-		return errors.New("Password must contain at least 8 characters")
+		return errors.New("password must contain at least 8 characters")
 	case len(user.Password) > 100:
-		return errors.New("Password cannot exceed 100 characters")
+		return errors.New("password cannot exceed 100 characters")
 	case len(user.Username) < 3:
-		return errors.New("Username must contain at least 3 characters")
+		return errors.New("username must contain at least 3 characters")
 	case len(user.Username) > 20:
-		return errors.New("Username cannot exceed 20 characters")
+		return errors.New("username cannot exceed 20 characters")
 	case !validateSymbols.MatchString(user.Password):
-		return errors.New("Password must contain at least one symbol")
+		return errors.New("password must contain at least one symbol")
 	case !validateNum.MatchString(user.Password):
-		return errors.New("Password must contain at least one number")
+		return errors.New("password must contain at least one number")
 	case !validateCap.MatchString(user.Password):
-		return errors.New("Password must contain at least one capital character")
+		return errors.New("password must contain at least one capital character")
 	default:
 		return nil
 	}
