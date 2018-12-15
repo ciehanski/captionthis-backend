@@ -22,10 +22,13 @@ func jsonResponse(status int, message string) map[string]interface{} {
 func respond(w http.ResponseWriter, data interface{}) {
 	// Set Headers
 	w.Header().Set("Accept-Charset", "utf-8")
-	w.Header().Add("Content-Type", "application/json")
+	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Content-Encoding", "gzip")
 	w.Header().Set("Vary", "Accept-Encoding")
 	w.Header().Set("Access-Control-Allow-Origin", "localhost")
+	w.Header().Set("X-Content-Type-Options", "nosniff")
+	w.Header().Set("X-XSS-Protection", "1; mode=block")
+	w.Header().Set("X-Frame-Options", "deny")
 
 	if err := json.NewEncoder(w).Encode(data); err != nil {
 		log.Panic(err)
