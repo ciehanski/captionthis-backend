@@ -1,10 +1,9 @@
-package api
+package pkg
 
 import (
 	"fmt"
 	"net/http"
 
-	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 	"github.com/urfave/negroni"
 )
@@ -14,12 +13,10 @@ func (a *API) initRouter() {
 	a.Options.Router = mux.NewRouter().StrictSlash(true)
 	// Logging middleware
 	a.Options.Router.Use(a.loggingMiddleware)
-	// Compression middleware
-	a.Options.Router.Use(handlers.CompressHandler)
-	// Proxy headers middleware
-	a.Options.Router.Use(handlers.ProxyHeaders)
+	// Recover middleware
+	a.Options.Router.Use(recoverMiddleware())
 	// 404 handler
-	a.Options.Router.NotFoundHandler = http.HandlerFunc(notFoundHandler404)
+	a.Options.Router.NotFoundHandler = http.HandlerFunc(notFoundHandler)
 	// Method not allow handler
 	a.Options.Router.MethodNotAllowedHandler = http.HandlerFunc(methodNotAllowed)
 	// Initialize routes
@@ -65,7 +62,7 @@ func (a *API) initRoutes() {
 
 	a.Options.Router.Handle(fmt.Sprintf("/%s/u/{userId:[0-9]+}/logout", a.Options.Version),
 		negroni.New(negroni.HandlerFunc(jwtMiddleware.HandlerWithNext),
-			negroni.Wrap(http.HandlerFunc(a.logout)))).Methods("POST")
+			negroni.Wrap(http.HandlerFunc(a.logout)))).Methods("GET")
 
 	a.Options.Router.Handle(fmt.Sprintf("/%s/u/{username:[a-zA-Z0-9]+}", a.Options.Version),
 		negroni.New(negroni.HandlerFunc(jwtMiddleware.HandlerWithNext),
@@ -115,12 +112,14 @@ func (a *API) initRoutes() {
 			negroni.Wrap(http.HandlerFunc(a.updateVote)))).Methods("PATCH")
 }
 
-// Handles 404s
-func notFoundHandler404(w http.ResponseWriter, r *http.Request) {
+// notFoundHandler handles 404s
+func notFoundHandler(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotFound)
 	respond(w, jsonResponse(http.StatusNotFound, "Invalid endpoint"))
 }
 
-// Handles invalid HTTP methods
+// methodNotAllowed handles invalid HTTP methods
 func methodNotAllowed(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusMethodNotAllowed)
 	respond(w, jsonResponse(http.StatusMethodNotAllowed, "Method not allowed"))
 }

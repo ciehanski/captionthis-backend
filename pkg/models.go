@@ -1,6 +1,8 @@
-package api
+package pkg
 
 import (
+	"log"
+	"net/http"
 	"time"
 
 	"github.com/gorilla/mux"
@@ -12,9 +14,12 @@ type API struct {
 }
 
 type Options struct {
+	Addr    string
 	Version string
+	Server  *http.Server
 	Router  *mux.Router
 	DB      *gorm.DB
+	Logger  *log.Logger
 	DBname  string
 	DBhost  string
 	DBuser  string

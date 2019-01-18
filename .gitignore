@@ -1,3 +1,5 @@
 .idea
 .env
 env.sh
+cmd/env.sh
+cmd/env_test.sh
