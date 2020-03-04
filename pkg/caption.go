@@ -8,7 +8,7 @@ import (
 	"github.com/jinzhu/gorm"
 )
 
-func (a *api) getAllCaptions(w http.ResponseWriter, r *http.Request) {
+func (a *API) getAllCaptions(w http.ResponseWriter, r *http.Request) {
 	var captions []Caption
 
 	if err := a.Options.DB.Find(&captions).Error; err != nil {
@@ -23,7 +23,7 @@ func (a *api) getAllCaptions(w http.ResponseWriter, r *http.Request) {
 	respond(w, captions)
 }
 
-func (a *api) getCaption(w http.ResponseWriter, r *http.Request) {
+func (a *API) getCaption(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
 	captionID := params["captionId"]
 	var caption Caption
@@ -41,7 +41,7 @@ func (a *api) getCaption(w http.ResponseWriter, r *http.Request) {
 }
 
 // TODO add validation
-func (a *api) createCaption(w http.ResponseWriter, r *http.Request) {
+func (a *API) createCaption(w http.ResponseWriter, r *http.Request) {
 	var caption Caption
 
 	if err := json.NewDecoder(r.Body).Decode(&caption); err != nil {
@@ -57,7 +57,7 @@ func (a *api) createCaption(w http.ResponseWriter, r *http.Request) {
 	respond(w, caption)
 }
 
-func (a *api) updateCaption(w http.ResponseWriter, r *http.Request) {
+func (a *API) updateCaption(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
 	captionID := params["captionId"]
 	var caption Caption
@@ -84,7 +84,7 @@ func (a *api) updateCaption(w http.ResponseWriter, r *http.Request) {
 	respond(w, jsonResponse(http.StatusOK, fmt.Sprintf("Caption %v successfully updated", captionID)))
 }
 
-func (a *api) deleteCaption(w http.ResponseWriter, r *http.Request) {
+func (a *API) deleteCaption(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
 	captionID := params["captionId"]
 	var caption Caption

@@ -4,29 +4,26 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 	"github.com/urfave/negroni"
 )
 
-func (a *api) initRouter() {
+func (a *API) initRouter() {
 	// Create router
 	a.Options.Router = mux.NewRouter().StrictSlash(true)
 	// Logging middleware
 	a.Options.Router.Use(a.loggingMiddleware)
-	// Compression middleware
-	a.Options.Router.Use(handlers.CompressHandler)
-	// Proxy headers middleware
-	a.Options.Router.Use(handlers.ProxyHeaders)
+	// Recover middleware
+	a.Options.Router.Use(recoverMiddleware())
 	// 404 handler
-	a.Options.Router.NotFoundHandler = http.HandlerFunc(notFoundHandler404)
+	a.Options.Router.NotFoundHandler = http.HandlerFunc(notFoundHandler)
 	// Method not allow handler
 	a.Options.Router.MethodNotAllowedHandler = http.HandlerFunc(methodNotAllowed)
 	// Initialize routes
 	a.initRoutes()
 }
 
-func (a *api) initRoutes() {
+func (a *API) initRoutes() {
 	// Public Endpoints
 	a.Options.Router.HandleFunc(fmt.Sprintf("/%s/u",
 		a.Options.Version), a.createUser).Methods("POST")
@@ -113,4 +110,16 @@ func (a *api) initRoutes() {
 	a.Options.Router.Handle(fmt.Sprintf("/%s/votes/{voteId:[0-9]+}", a.Options.Version),
 		negroni.New(negroni.HandlerFunc(jwtMiddleware.HandlerWithNext),
 			negroni.Wrap(http.HandlerFunc(a.updateVote)))).Methods("PATCH")
+}
+
+// notFoundHandler handles 404s
+func notFoundHandler(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotFound)
+	respond(w, jsonResponse(http.StatusNotFound, "Invalid endpoint"))
+}
+
+// methodNotAllowed handles invalid HTTP methods
+func methodNotAllowed(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusMethodNotAllowed)
+	respond(w, jsonResponse(http.StatusMethodNotAllowed, "Method not allowed"))
 }

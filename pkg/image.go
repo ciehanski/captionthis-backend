@@ -10,7 +10,7 @@ import (
 	"github.com/tjarratt/babble"
 )
 
-func (a *api) getAllImages(w http.ResponseWriter, r *http.Request) {
+func (a *API) getAllImages(w http.ResponseWriter, r *http.Request) {
 	var images []Image
 
 	if err := a.Options.DB.Find(&images).Error; err != nil {
@@ -25,7 +25,7 @@ func (a *api) getAllImages(w http.ResponseWriter, r *http.Request) {
 	respond(w, images)
 }
 
-func (a *api) getImage(w http.ResponseWriter, r *http.Request) {
+func (a *API) getImage(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
 	imageSlug := params["imageSlug"]
 	var image Image
@@ -42,7 +42,7 @@ func (a *api) getImage(w http.ResponseWriter, r *http.Request) {
 	respond(w, image)
 }
 
-func (a *api) createImage(w http.ResponseWriter, r *http.Request) {
+func (a *API) createImage(w http.ResponseWriter, r *http.Request) {
 	var image Image
 
 	if err := json.NewDecoder(r.Body).Decode(&image); err != nil {
@@ -67,7 +67,7 @@ func (a *api) createImage(w http.ResponseWriter, r *http.Request) {
 	respond(w, image)
 }
 
-func (a *api) updateImage(w http.ResponseWriter, r *http.Request) {
+func (a *API) updateImage(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
 	imageSlug := params["imageSlug"]
 	var image Image
@@ -100,7 +100,7 @@ func (a *api) updateImage(w http.ResponseWriter, r *http.Request) {
 	respond(w, jsonResponse(http.StatusOK, fmt.Sprintf("Image %v successfully updated", imageSlug)))
 }
 
-func (a *api) deleteImage(w http.ResponseWriter, r *http.Request) {
+func (a *API) deleteImage(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
 	imageSlug := params["imageSlug"]
 	var image Image

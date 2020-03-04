@@ -1,0 +1,17 @@
+language: go
+sudo: false
+install: true
+os:
+  - linux
+  - osx
+dist: xenial
+go:
+  - 1.11.x
+env:
+  - GO111MODULE=on
+before_script:
+  - go vet ./...
+script:
+  - go test -v ./...
+  - cd cmd
+  - CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o main .
