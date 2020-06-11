@@ -4,7 +4,6 @@ require (
 	cloud.google.com/go v0.34.0 // indirect
 	github.com/BurntSushi/toml v0.3.1 // indirect
 	github.com/ciehanski/go-jwt-middleware v1.0.0
-	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/denisenkom/go-mssqldb v0.0.0-20181014144952-4e0d7dc8888f // indirect
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/erikstmartin/go-testdb v0.0.0-20160219214506-8d10e4a1bae5 // indirect
@@ -15,7 +14,7 @@ require (
 	github.com/jinzhu/gorm v1.9.2
 	github.com/jinzhu/inflection v0.0.0-20180308033659-04140366298a // indirect
 	github.com/jinzhu/now v0.0.0-20181116074157-8ec929ed50c3 // indirect
-	github.com/json-iterator/go v1.1.5
+	github.com/json-iterator/go v1.1.10
 	github.com/kr/pretty v0.1.0 // indirect
 	github.com/lib/pq v1.0.0 // indirect
 	github.com/mattn/go-sqlite3 v1.10.0 // indirect
@@ -24,8 +23,6 @@ require (
 	github.com/natefinch/lumberjack v2.0.0+incompatible
 	github.com/onsi/ginkgo v1.7.0 // indirect
 	github.com/onsi/gomega v1.4.3 // indirect
-	github.com/pmezard/go-difflib v1.0.0 // indirect
-	github.com/stretchr/testify v1.2.2 // indirect
 	github.com/tjarratt/babble v0.0.0-20140317234543-2cf06e8d98b0
 	github.com/urfave/negroni v1.0.0
 	github.com/victorspringer/http-cache v0.0.0-20180917030003-74620151b84f
